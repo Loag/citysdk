@@ -1,50 +1,23 @@
 {
-  "name": "citysdk-node",
-  "version": "0.2.0",
-  "description": "Toolbox for civic innovators to connect local and national public data.",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/uscensusbureau/citysdk.git"
+  "name": "city-kit",
+  "version": "0.0.1",
+  "description": "Fork of citysdk focused on clean api only",
+  "scripts": {
+    "prestart": "npm run build",
+    "start": "node lib/api/main.js",
+    "build": "babel src -d lib"
   },
-  "keywords": [
-    "citysdk",
-    "city-sdk",
-    "census"
-  ],
-  "author": "US Census Bureau",
-  "license": "CC0-1.0",
-  "bugs": {
-    "url": "https://github.com/uscensusbureau/citysdk/issues"
-  },
-  "homepage": "http://uscensusbureau.github.io/citysdk/",
   "dependencies": {
-    "basic-auth": "^1.0.4",
-    "body-parser": "^1.15.1",
-    "express": "^4.13.4",
-    "jquery": "3.2.1",
-    "promise": "^7.1.1",
-    "request": "^2.72.0",
-    "terraformer": "^1.0.5",
-    "terraformer-arcgis-parser": "^1.0.4"
+    "basic-auth": "^2.0.0",
+    "body-parser": "^1.18.3",
+    "express": "^4.16.3",
+    "request": "^2.88.0",
+    "terraformer": "^1.0.9",
+    "terraformer-arcgis-parser": "^1.1.0"
   },
   "devDependencies": {
-    "babel": "^6.5.2",
-    "babel-polyfill": "^6.9.1",
-    "babel-preset-es2015": "^6.9.0",
-    "babel-preset-es2015-rollup": "^1.1.1",
-    "del": "^2.2.0",
-    "gulp": "^3.9.1",
-    "gulp-babel": "^6.1.2",
-    "gulp-replace": "^0.5.4",
-    "gulp-uglify": "^1.5.3",
-    "jasmine": "^2.4.1",
-    "jasmine-core": "^2.4.1",
-    "karma": "^0.13.22",
-    "karma-chrome-launcher": "^1.0.1",
-    "karma-jasmine": "^1.0.2",
-    "karma-sourcemap-loader": "^0.3.7",
-    "rollup": "^0.26.3",
-    "rollup-plugin-babel": "^2.5.1",
-    "rollup-plugin-json": "^2.0.0"
+    "babel-cli": "^6.0.0",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.7.0"
   }
 }

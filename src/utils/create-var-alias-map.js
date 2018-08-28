@@ -1,17 +1,19 @@
 var fs = require('fs');
 var aliases = require('../resources/aliases.json');
 
-var variableToAliasMap = {};
+const alias_map = () => {
+  return aliases.reduce((acc, cur) => {
+    let variable = aliases[cur].variable;
+    
+    acc[variable] = {
+      alias: cur,
+      api: aliases[cur].api,
+      description: aliases[cur].description
+    };
 
-for (var alias in aliases) {
-  var variable = aliases[alias].variable;
-
-  variableToAliasMap[variable] = {
-    alias: alias,
-    api: aliases[alias].api,
-    description: aliases[alias].description
-  };
+   return acc;
+  })
 }
 
-fs.writeFileSync('../resources/var-alias-map.json', JSON.stringify(variableToAliasMap), 'utf-8');
+fs.writeFileSync('../resources/var-alias-map.json', JSON.stringify(alias_map()), 'utf-8');
 

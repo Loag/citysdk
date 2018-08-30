@@ -3,12 +3,10 @@
   "version": "0.0.1",
   "description": "Fork of citysdk focused on clean api only",
   "scripts": {
-    "prestart": "npm run build",
-    "start": "node lib/api/main.js",
+    "start": "node lib/app.js",
     "build": "babel src -d lib"
   },
   "dependencies": {
-    "basic-auth": "^2.0.0",
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "request": "^2.88.0",

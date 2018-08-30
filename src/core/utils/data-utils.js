@@ -2,46 +2,27 @@ import Terraformer from 'terraformer';
 import ArcGIS from 'terraformer-arcgis-parser';
 Terraformer.ArcGIS = ArcGIS;
 
-import aliases from '../../../resources/aliases.json';
-import stateNames from '../../../resources/us-state-names.json';
-import variableToAliasMap from '../../../resources/var-alias-map.json';
-import stateCapitalCoordinates from '../../../resources/us-states-latlng.json';
+import aliases from '../../../large_resources/aliases.json';
+import variableToAliasMap from '../../../large_resources/var-alias-map';
 
-  /**
-   * Returns a map of the most popular aliases.
-   */
-
-  export const get_sdk_aliases = () => {
-    return aliases;
-  }
+import stateCapitalCoordinates from '../resources/us-states-latlng';
+import stateNames from '../resources/us-state-names';
 
   /**
    * @description Converts a Census variable, or a list of variables, to
    * its corresponding alias.
    * For example: for the variable B0009_00130 this function
    * would return "population" as the alias.
-   *
-   * @param variables
-   * @returns {{}}
+   * @param items - 
    */
 
-  export const variable_to_alias = (variables) => {
-    if(Object.prototype.toString.call(variables) !== '[object Array]') {
-      variables = [variables];
-    }
-    
-    let result = {};
-
-    if (variables && variables.length) {
-      for (let variable of variables) {
-        result[variable] = variableToAliasMap[variable];
-      }
-
-      return result;
-
-    } else {
-      throw new Error('Invalid list of variables. Make sure multiple variables are comma separated.');
-    }
+  export const variable_to_alias = (items) => {
+    if (!items) throw new Error('Invalid list of variables. Make sure multiple variables are comma separated.');
+    if(!Array.isArray(items)) items = [items];
+    return items.reduce((acc, cur) => {
+     acc[cur] = variableToAliasMap[cur];
+     return acc;
+    }, {});
   }
 
   /**
@@ -50,55 +31,40 @@ import stateCapitalCoordinates from '../../../resources/us-states-latlng.json';
    * For example: the alias population would be converted to the
    * variable B0009_00130
    *
-   * @param _aliases
+   * @param items
    * @returns {{}}
    */
 
-  export const alias_to_variable = (_aliases) => {
-    if(Object.prototype.toString.call(_aliases) !== '[object Array]') {
-      _aliases = [_aliases];
-    }
+  export const alias_to_variable = (items) => {
+    if (!items) throw new Error('Invalid list of aliases. Make sure multiple aliases are comma separated.');
+    if(!Array.isArray(items)) items = [items];
     
-    let result = {};
-
-    if (_aliases && _aliases.length) {
-      for (let alias of _aliases) {
-        result[alias] = aliases[alias];
-      }
-    } else {
-      throw new Error('Invalid list of aliases. Make sure multiple aliases are comma separated.');
-    }
-
-    return result;
-   }
+    return items.reduce((acc, cur)=> {
+      acc[cur] = items[cur];
+      return acc;
+    }, {})
+  }
 
   /**
    * @description Converts ESRI JSON to GeoJSON
    *
-   * @param {string} esriJson
+   * @param {any} esriJson
    *
    * @returns {{type: string, features: Array}}
    */
 
   export const  esri_to_geo = (esriJson) => {
-    if (!('features' in esriJson)) {
-      // data is missing
-      return null;
-    }
+    if (Object.keys(esriJson).includes('features')) return null;
+    
+    let geo = esriJson.features.map((item, index) => {
+      let mapObj = Object.assign({}, item, {spatialReference: esriJson.spatialReference})
+      return Terraformer.ArcGIS.parse(mapObj)
+    })
 
-    let features = esriJson.features;
-
-    let geojson = {
-      'type': 'FeatureCollection',
-      'features': []
-    };
-
-    for (var i = 0; i < features.length; i++) {
-      features[i].spatialReference = esriJson.spatialReference;
-      geojson.features.push(Terraformer.ArcGIS.parse(features[i]));
-    }
-
-    return geojson;
+    return {
+     'type': 'FeatureCollection',
+     'features': geo
+   };
   }
 
 
@@ -111,6 +77,7 @@ import stateCapitalCoordinates from '../../../resources/us-states-latlng.json';
    *
    * @returns {object}
    */
+  
   export const geo_to_esri = (geoJson) => {
     return Terraformer.ArcGIS.convert(geoJson);
   }
@@ -130,27 +97,16 @@ import stateCapitalCoordinates from '../../../resources/us-states-latlng.json';
    */
 
   export const get_state_capital_coordinates = (state) => {
-    // No string supplied
-    if (!state) {
-      return null;
-    }
+    if (!state) return null;
 
-    state = state.toUpperCase().trim();
-
-    if (state in stateCapitalCoordinates) {
-      // state is a 2-letter state code and is valid
+    let cleaned_state = state.toUpperCase().trim();
+    if (Object.keys(stateCapitalCoordinates).includes(cleaned_state)) {
       return stateCapitalCoordinates[state];
-    }
-
-    // Look in US_STATE_NAMES
-    state = state.toLowerCase();
-
-    for (var statecode in stateNames) {
-      if (state === stateNames[statecode]) {
-        return stateCapitalCoordinates[statecode];
+    } else {
+      let full_state = state.toLowerCase();
+      if (Object.keys(stateNames).includes(full_state)) {
+        return stateCapitalCoordinates[(stateNames[full_state])];
       }
     }
-
-    // Nothing was found
     return null;
   }

@@ -1,4 +1,4 @@
-{
+export default {
   "AL": "alabama",
   "AK": "alaska",
   "AZ": "arizona",

@@ -1,114 +1,78 @@
 import {get_geography_variables} from '../utils/req-utils';
-const availableDatasets = require('../../../resources/available-datasets.json');
+import availableDatasets from '../resources/available-datasets';
 
-// Defaults
-const defaultApi = 'acs5';
-const defaultLevel = 'blockGroup';
-const defaultSublevel = false;
+export const validate_api = (input) => {
+  const defaultApi = 'acs5';
+  if (!input.api) return Object.assign({}, input, {api: defaultApi});
+  return input;
+}
 
-// Valid levels
-const levels = new Set(['blockGroup', 'tract', 'county', 'state', 'us', 'place']);
+const validate_api_year = (request) => {
+  if (availableDatasets[request.api]) { 
+    let availableApiYears = availableDatasets[request.api].sort();
+    if (!request.year || !availableApiYears.includes(request.year)) return Object.assign({}, request, {year: availableApiYears.pop()})
+  } 
+  return request;
+}
 
+const validate_level = (input) => {
+  const defaultLevel = 'blockGroup';
+  const levels = ['blockGroup', 'tract', 'county', 'state', 'us', 'place'];
+  if (!input.level || !levels.includes(input.level)) return Object.assign({}, input, {level: defaultLevel});
+  return input;
+}
 
-  export const validate_api = (request) => {
-    if (!request.api) {
-      request.api = defaultApi;
+// have to figure out whats going on here.. strange 
+const validate_sublevel = (input) => {
+  const defaultSublevel = false;
+  if (input.sublevel) {
+    if ((typeof input.sublevel) !== 'boolean') {
+     return Object.assign({}, input, {sublevel: 'true'});
     }
-    
-    return request;
   }
+  return Object.assign({}, input, {sublevel: defaultSublevel});
+}
+
+export const validate = (request) => {      
+  return validate_sublevel(validate_level(validate_api_year(validate_api(request))));
+}
   
-  const validate_api_year = (request) => {
-    // Check if api is valid.
-    if (availableDatasets[request.api]) {
-      // Get available years for this api and sort the them in
-      // ascending order.
-      let availableApiYears = availableDatasets[request.api].sort();
+export const validate_geo_variables = (input) => {
+  return new Promise ((resolve, reject) => {
 
-      // If the request year was not provided or if it is invalid, set it to
-      // the most recent year that is available for the requested api.
-      if (!request.year || isNaN(+request.year) || availableApiYears.indexOf(request.year) === -1) {
-        request.year = availableApiYears[availableApiYears.length - 1];
-      }
-    }
-    
-    return request;
-  }
+    get_geography_variables(input).then((response) => {
+      let level = input.level;
+      if (input.level === 'blockGroup') level = 'block group';
 
-  const validate_level = (request) => {
-    if (!request.level || !levels.has(request.level)) {
-      request.level = defaultLevel;
-    }
-    
-    return request;
-  }
-  
-  const validate_sublevel = (request) => {
-    if (request.hasOwnProperty('sublevel')) {
-      if ((typeof request.sublevel) !== 'boolean') {
-        request.sublevel = request.sublevel === 'true';
-      }
-    } else {
-      request.sublevel = defaultSublevel;
-    }
-
-    return request;
-  }
-
-  export const validate = (request) => {      
-    return validate_sublevel(validate_level(validate_api_year(validate_api(request))));
-  }
-  
-  export const validate_geo_variables = (request) => {
-    let promiseHandler = (resolve, reject) => {
-      get_geography_variables(request).then((response) => {
-        let fips = response.fips;
-        let level = request.level;
-        let valid = false;
-        let requiredFields;
-
-        if (level === 'blockGroup') {
-          level = 'block group'
-        }
-
-        for (let value of fips) {
-          if (value.name === level) {
-            valid = true;
-            let requires = value.requires;
-
-            if (requires && requires.length) {
-              for (let required of requires) {
-                if (!request.hasOwnProperty(required)) {
-                  valid = false;
-                  break;
-                }
+      let requiredFields = response.fips.reduce((acc, cur) => {
+        if (cur.name === level) {
+          if (cur.requires && cur.requires.length) {
+            let missingFields = cur.requires.reduce((acc, cur) => {
+              if (!input[cur]){
+                acc.push(cur)
               }
-            }
-
-            // Required fields are missing in the request.
-            // Save them so that we can inform the user by
-            // adding them to the error.
-            if (!valid) {
-              requiredFields = requires.join(', ');
-            }
-
-            break;
+              return acc;
+            }, [])
+            acc.concat(missingFields);
           }
+          return acc;
         }
+        acc = false;
+        return acc;
+      }, []);
 
-        request.geographyValidForAPI = valid;
-
-        if (valid) {
-          resolve(request);
+      if (requiredFields === '') {
+        let res = Object.assign({}, input, {geographyValidForAPI: true, level: level})
+        resolve(res);
+      } else {
+        if (requiredFields !== false) {
+          reject(`Request is missing required fields: ${requiredFields.toString()}.`);
         } else {
-          if (requiredFields) {
-            reject(new Error(`Request is missing required fields: ${requiredFields}.`));
-          } else {
-            reject(new Error(`Invalid level "${level}" for this request.`));
-          }
+          reject(`Invalid level "${level}" for this request.`);
         }
-      }).catch((reason) => reject(reason));
-    };
-
-    return new Promise(promiseHandler);
-  }
+      }
+    }).catch((err) => {
+      reject(err);
+    })
+  })
+}

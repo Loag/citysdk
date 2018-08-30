@@ -3,11 +3,11 @@ import {get_data, post_data} from './http-reqs';
 import {geo_to_esri, esri_to_geo} from './data-utils';
 
 import {parse_to_valid_variable, is_normalizable} from '../utils/req-utils';
-import defaults from '../utils/defaults';
+import defaults from '../resources/defaults';
 
-const servers = require('../../../resources/servers.json');
-const usBoundingBox = require( '../../../resources/us-bounds.json');
-const requiredVariables = require('../../../resources/required-variables.json');
+import servers from '../resources/servers';
+import usBoundingBox from '../resources/us-bounds';
+import requiredVariables from '../resources/required-variables';
 
   export const supplemental_request = (req, res, featureIndex) => {
     let i = featureIndex;
@@ -36,10 +36,8 @@ const requiredVariables = require('../../../resources/required-variables.json');
       apikey: req.apikey
     };
 
-    let promiseHandler = (resolve, reject) => {
-      let censusSummaryRequest = summary_req(suppRequest);
-
-      censusSummaryRequest.then((response) => {
+    return new Promise((resolve, reject) => {
+      return summary_req(suppRequest).then((response) => {
         for (let property in response.data[0]) {
           if (response.data[0].hasOwnProperty(property)) {
             features[response.featuresIndex].properties[property] = response.data[0][property];
@@ -49,16 +47,11 @@ const requiredVariables = require('../../../resources/required-variables.json');
             }
           }
         }
-
         resolve(response);
+      }).catch((err) => {
+        reject(err);
       });
-
-      censusSummaryRequest.catch((reason) => {
-        reject(reason);
-      });
-    };
-
-    return new Promise(promiseHandler);
+    });
   }
 
   // tiger web utils
@@ -72,8 +65,8 @@ const requiredVariables = require('../../../resources/required-variables.json');
     tigerwebRequest.geometryType = "esriGeometryPoint";
     tigerwebRequest.spatialRel = "esriSpatialRelIntersects";
 
-    let promiseHandler = (resolve, reject) => {
-      post_data(tigerwebUrl, tigerwebRequest).then((response) => {
+    return new Promise((resolve, reject) => {
+      return post_data(tigerwebUrl, tigerwebRequest).then((response) => {
         let features = response.features;
 
         // Grab our container ESRI geography, attach it to our request,
@@ -85,10 +78,10 @@ const requiredVariables = require('../../../resources/required-variables.json');
         }
 
         resolve(request);
-      }).catch((reason) => reject(reason));
-    };
-
-    return new Promise(promiseHandler);
+      }).catch((err) => {
+        reject(err);
+      })
+    });
   }
 
   const get_geo_data = (request) => {
@@ -105,20 +98,17 @@ const requiredVariables = require('../../../resources/required-variables.json');
         ? "esriSpatialRelIntersects"
         : "esriSpatialRelContains";
 
-    let promiseHandler = (resolve, reject) => {
-      post_data(tigerwebUrl, tigerwebRequest).then((response) => {
-        resolve(response);
-      }).catch((reason) => {
-        reject(reason)
+    return new Promise((resolve, reject) => {
+      return post_data(tigerwebUrl, tigerwebRequest).then((res) => {
+        resolve(res);
+      }).catch((err) => {
+        reject(err)
       });
-    };
-    return new Promise(promiseHandler);
+    });
   }
 
   export const tiger_req = (request) => {
-    if (!request.tigerwebApi) {
-      request.tigerwebApi = 'current';
-    }
+    if (!request.tigerwebApi) request.tigerwebApi = 'current';
 
     // request.tigerwebApiInfo = servers[request.tigerwebApi];
     request.tigerwebRequest = {
@@ -129,17 +119,20 @@ const requiredVariables = require('../../../resources/required-variables.json');
       inSR: 4326
     };
 
-    const sublevelRequested = request.hasOwnProperty('sublevel') && request.sublevel;
+    const sublevelRequested = request.sublevel;
 
-    let promiseHandler = (resolve, reject) => {
+    return new Promise((resolve, reject) => {
+
       if (request.container && sublevelRequested && !request.containerGeometry) {
-        get_container_geometry(request)
-          .then(get_geo_data)
-          .then((response) => {
-            resolve({response: esri_to_geo(response), request: request})
+        return get_container_geometry(request)
+          .then((data) => {
+            return get_geo_data(data);
           })
-          .catch((reason) => {
-            reject(reason)
+          .then((res) => {
+            resolve({response: esri_to_geo(res), request: request})
+          })
+          .catch((err) => {
+            reject(err)
           });
         
       } else if (sublevelRequested) {
@@ -160,13 +153,15 @@ const requiredVariables = require('../../../resources/required-variables.json');
             request.level = 'blockGroup';
         }
 
-        get_container_geometry(request)
-          .then(get_geo_data)
-          .then((response) => {
-            resolve({response: esri_to_geo(response), request: request})
+        return get_container_geometry(request)
+          .then((data) => {
+           return get_geo_data(data);
           })
-          .catch((reason) => {
-            reject(reason)
+          .then((res) => {
+            resolve({response: esri_to_geo(res), request: request})
+          })
+          .catch((err) => {
+            reject(err)
           });
         
       } else {
@@ -179,16 +174,15 @@ const requiredVariables = require('../../../resources/required-variables.json');
         tigerwebRequest.geometryType = "esriGeometryPoint";
         tigerwebRequest.spatialRel = "esriSpatialRelIntersects";
 
-        post_data(tigerwebUrl, tigerwebRequest)
-          .then((response) => {
-            resolve({response: esri_to_geo(response), request: request})
+        return post_data(tigerwebUrl, tigerwebRequest)
+          .then((res) => {
+            resolve({response: esri_to_geo(res), request: request})
           })
           .catch((err) => {
             reject(err);
           });
       }
-    };
-    return new Promise(promiseHandler);
+    });
   }
 
   export const handle_tigerweb_response = (tigerwebResponse) => {
@@ -258,20 +252,17 @@ const requiredVariables = require('../../../resources/required-variables.json');
       });
     }
 
-    let promiseHandler = (resolve, reject) => {
-      // If supplemental requests were needed, wait for all
-      // to finish.
+    return new Promise((resolve, reject) => {
       if (supplementalRequests.length) {
-        Promise.all(supplementalRequests)
-            .then(() => resolve(response))
-            .catch((reason) => reject(reason))
-
+        return Promise.all(supplementalRequests).then(() => {
+          resolve(response)
+        }).catch((err) => {
+         reject(err)
+        })
       } else {
-        setTimeout(() => resolve(response), 0);
+        resolve(response);
       }
-    };
-
-    return new Promise(promiseHandler);
+    });
   }
 
  // summary req funcs
@@ -550,32 +541,30 @@ const requiredVariables = require('../../../resources/required-variables.json');
     var url = defaults.censusUrl;
     url += `${request.year}/${request.api}?get=${variableString}&${qualifiers}&key=${request.apikey}`;
 
-    let promiseHandler = (resolve, reject) => {
-      get_data(url).then((response) => {
-        request = parse_summary_response(request, response);
-        resolve(request);
-        
+    return new Promise((resolve, reject) => {
+      return get_data(url).then((response) => {
+        return parse_summary_response(request, response);
+      }).then((res) => {
+        resolve(res);
       }).catch((reason) => reject(reason));
-    };
-
-    return new Promise(promiseHandler);
+    });
   }
 
   // main func
 
   export const geo_request = (req) => {
-    let promiseHandler = (resolve, reject) => {
-      main(req)
-        .then(tiger_req)
-        .then(handle_tigerweb_response)
-        .then((res) => {
-          resolve(res)
-        })
-        .catch((err) => {
-          reject(err)
-        })
-    };
-    return new Promise(promiseHandler);
+    return new Promise((resolve, reject) => {
+      return main(req)
+      .then((res1) => {
+        return tiger_req(res1)
+      }).then((res2) => {
+        return handle_tigerweb_response(res2)
+      }).then((fin) => {
+        resolve(fin)
+      }).catch((err) => {
+        reject(err)
+      })
+    });
   }
 
   

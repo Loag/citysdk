@@ -1,6 +1,9 @@
 ## Please Read!
 This fork is a rewrite of the api only of the original citysdk. I have no intention of developing the client side sdk.
 
+## TODO
+- move json resources to hosted files.
+- clean up 
 ## PROJECT STATUS 
 Currently, this project is not in active development, but we hope to shore up some resources soon to remedy this. Please voice your support on cnmp.developers.list@census.gov or on twitter @uscensusbureau to help us make the case!
 

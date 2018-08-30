@@ -1,5 +1,5 @@
-var fs = require('fs');
-var aliases = require('../resources/aliases.json');
+const fs = require('fs');
+const aliases = require('../../resources/aliases.json');
 
 const alias_map = () => {
   return aliases.reduce((acc, cur) => {

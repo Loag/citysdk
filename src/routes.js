@@ -1,7 +1,6 @@
 import express from 'express';
-import {decodeAuthHeader, validateApiKey} from './auth';
-import city_kit from '../../core/main';
-import {variable_to_alias, alias_to_variable} from '../../core/utils/data-utils';
+import city_kit from './core/main';
+import {variable_to_alias, alias_to_variable} from './core/utils/data-utils';
 
 let router = express.Router();
 
@@ -48,7 +47,6 @@ router.get('/alias-to-variable', (req, res) => {
 
 // post methods
 router.post('/', (req, res) => {
-  // req.body.apikey = decodeAuthHeader(req);
   city_kit(req.body).then((response) => {
     res.json(response)
   });

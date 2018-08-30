@@ -1,4 +1,4 @@
-{	
+export default {	
 	"pep\/natstprc": [
 		"2013", "2014"
 	], 

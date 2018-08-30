@@ -1,6 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import routes from './services/router';
+import routes from './routes';
 
 let app = express();
 

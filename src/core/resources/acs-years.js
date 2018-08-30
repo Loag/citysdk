@@ -1,4 +1,4 @@
-{
+export default {
   "2010": ["acs5"],
   "2011": ["acs5"],
   "2012": ["acs5", "acs3", "acs1"],

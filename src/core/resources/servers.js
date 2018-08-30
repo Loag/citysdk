@@ -1,4 +1,4 @@
-{
+export default {
   "current": {
     "url": "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/tigerWMS_Current/MapServer/{mapserver}/query",
     "mapServers": {
